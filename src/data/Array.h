@@ -48,6 +48,8 @@ struct CPUArray : Array<Type> {
 template<typename Type>
 struct GPUArray : Array<Type> {
     explicit GPUArray(ArraySizeType p_size) : Array<Type>(p_size) {
+        size_t mf, ma;
+        cudaMemGetInfo(&mf, &ma);
         CUDA_ASSERT(cudaMalloc(&this->m_data, this->size() * sizeof(Type)));
     }
     virtual ~GPUArray() { CUDA_ASSERT(cudaFree(this->m_data)); }

@@ -53,7 +53,7 @@ inline DataSet read(const std::string& file, uint64_t count = (1ULL << 54)) {
     }
 
     if (format == BINARY) {
-
+        std::cout << "Reading...\n";
         // read the header
         fread(&data_set.header, sizeof(Header), 1, f);
 
@@ -78,6 +78,7 @@ inline DataSet read(const std::string& file, uint64_t count = (1ULL << 54)) {
 
         int  c = 0;
         char buffer[128];
+        Position temp;
         while (fgets(buffer, 128, f) && (c++) < count) {
             // Remove trailing newline
             buffer[strcspn(buffer, "\n")] = 0;
@@ -85,7 +86,10 @@ inline DataSet read(const std::string& file, uint64_t count = (1ULL << 54)) {
                 printf("\r[Reading positions] Current count=%d", c);
                 fflush(stdout);
             }
-            data_set.positions.push_back(parseFen(std::string(buffer)));
+            temp = parseFen(std::string(buffer));
+            if(temp.m_result.wdl == -69)
+                continue;
+            data_set.positions.push_back(temp);
         }
         printf("\r[Reading positions] Current count=%d", c - 1);
         fflush(stdout);

@@ -17,72 +17,128 @@
  */
 
 #include "archs/Koivisto.h"
+#include "archs/Clover.h"
+//#include "archs/Alexandria.h"
 #include "misc/config.h"
 #include "numerical/finite_difference.h"
 #include "trainer.h"
 #include "quantitize.h"
+#include "dataset/writer.h"
+#include "dataset/batchloader.h"
+#include "dataset/dataset.h"
+#include "dataset/shuffle.h"
 
 #include <iostream>
 #include <vector>
 
 using namespace std;
 
+const bool loadData = false;
+const bool shuffleData = false;
+const bool trainData = true;
+
+struct RootPath {
+    string path;
+    int init_ind;
+};
+
 int main() {
     init();
 
-    DenseMatrix inp{16,4};
-    DenseMatrix wgt{16,1};
-    DenseMatrix bia{2,1};
-    DenseMatrix out{2,4};
+    vector <RootPath> rootPaths {{"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_3_2_v2_", 0},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_6_", 16},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\Clover_data_5k_3_", 48},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\Clover_data_5k_2_", 64},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\Clover_data_5k_", 80},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\Clover_4_0_data_", 96},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\Clover_4.0_data_", 112},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\Clover_3_3_5knodes_", 128},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_3_2_v3_", 144},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_3_2_v1_", 160},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_10_", 176},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_5_", 192},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_3_3_v2_", 208},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_5k_", 224},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_5k_2_", 240},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_5k_3_", 256},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_1_", 272},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_2_", 288},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_3_", 304},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_4_", 320},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_7_", 336},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_8_", 352},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_9_", 368},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_11_", 384},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_12_", 400},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_13_", 416},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_14_", 432},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_15_", 448},
+                               {"C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_16_", 464},
+                               };
 
-    inp.randomise(0,1);
-    wgt.randomise(0,1);
+    DataSet CloverData{}, ds{};
+    vector <string> init_files{};
+    if(loadData) {
+        int ind = 0;
+        for(auto &[rootPath, start_ind] : rootPaths) {
+            ind = start_ind;
+            for(int i = 0; i < 16; i++) {
+                DataSet ds = read<TEXT>(rootPath + to_string(i) + ".txt");
+                //ds.shuffle();
+                write("C:\\Users\\Luca\\source\\repos\\CudAD\\data\\CloverData_test" + to_string(ind) + ".bin", ds, (int)1e8);
+                ind++;
+            }
+        }
+    }
 
+    if(false) {
+        int ind = 464;
+        for(int i = 0; i < 16; i++) {
+            DataSet ds = read<TEXT>("C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_16_" + to_string(i) + ".txt");
+            //ds.shuffle();
+            write("C:\\Users\\Luca\\source\\repos\\CudAD\\data\\CloverData_test" + to_string(ind) + ".bin", ds, (int)1e8);
+            ind++;
+        }
+    }
 
-    std::cout << inp << std::endl;
-    std::cout << wgt << std::endl;
-    std::cout << bia << std::endl;
-    std::cout << out << std::endl;
+    if(false) {
+        int ind = 0;
+        for(auto &[rootPath, start_ind] : rootPaths) {
+            //bool flag = (ind / 16 == 12 || ind / 16 == 14);
+            ind = start_ind;
+            for(int i = 0; i < 16; i++) {
+                ind++;
+                init_files.push_back("C:\\Users\\Luca\\source\\repos\\CudAD\\data\\CloverData_test" + to_string(ind) + ".bin");
+            }
+        }
+        mix_and_shuffle_2(init_files, "C:\\Users\\Luca\\source\\repos\\CudAD\\data\\Clover_shuffled$.bin");
+    }
 
-    inp.gpuUpload();
-    wgt.gpuUpload();
-    bia.gpuUpload();
-//    out.gpuUpload();
+    vector<string> files {};
+    const string   output    = R"(C:\Users\Luca\source\repos\CudAD\runs\run23\)";
+    
+    for (int i = 1; i <= 32; i++)
+        files.push_back("C:\\Users\\Luca\\source\\repos\\CudAD\\data\\Clover_shuffled" + to_string(i) + ".bin");
 
-    reduce<DEVICE>(inp, wgt, out);
+    std::cout << "Pushed all files\n";
+    if(trainData) {
+        Trainer<Clover> trainer {};
+        trainer.fit(
+            files,
+            vector<string> {"C:\\Users\\Luca\\source\\repos\\CudAD\\data\\CloverData_test69.bin"},
+            output);
+    }
 
-    inp.gpuDownload();
-    wgt.gpuDownload();
-    bia.gpuDownload();
-    out.gpuDownload();
-
-//    std::cout << inp << std::endl;
-//    std::cout << wgt << std::endl;
-//    std::cout << bia << std::endl;
-    std::cout << out << std::endl;
-
-
-//    const string   data_path = R"(D:\Koivisto Resourcen\Training Data 8.9\noob\)";
-//    const string   output    = R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\CudAD\resources\runs\experiment_36\)";
-//
-//    vector<string> files {};
-//    for (int i = 1; i <= 192; i++)
-//        files.push_back(data_path + "shuffled_" + to_string(i) + ".bin");
-//
-////    Trainer<Koivisto> trainer {};
-////    trainer.fit(
-////        files,
-////        vector<string> {R"(D:\Koivisto Resourcen\Training Data 7.9\reshuffled_generated_0.txt.bin)"},
-////        output);
-//
-//    auto layers = Koivisto::get_layers();
-//    Network network{std::get<0>(layers),std::get<1>(layers)};
-////    network.setLossFunction(Koivisto::get_loss_function());
-////    network.loadWeights(output + "weights-epoch10.nnue");
-////
-//
-////    test_fen<Koivisto>(network, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-////    test_fen<Koivisto>(network, "8/8/6R1/5k1P/6p1/4K3/8/8 b - - 1 53");
+    auto layers = Clover::get_layers();
+    Network network{std::get<0>(layers),std::get<1>(layers)};
+    network.setLossFunction(Clover::get_loss_function());
+    network.loadWeights(output + "weights-5buckets-epoch350.nnue");
+    
+    test_fen<Clover>(network, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    test_fen<Clover>(network, "8/8/6R1/5k1P/6p1/4K3/8/8 b - - 1 53");
+    test_fen<Clover>(network, "3k4/8/8/2QK4/8/8/8/8 w - - 0 1");
+    test_fen<Clover>(network, "3k4/8/8/2RK4/8/8/8/8 w - - 0 1");
+    test_fen<Clover>(network, "2k5/8/1P6/2KN3P/8/8/8/8 w - - 1 71");
 ////    network.loadWeights(output + "weights-epoch10.nnue");
 ////    test_fen<Koivisto>(network, "8/8/6R1/5k1P/6p1/4K3/8/8 b - - 1 53");
 ////    network.loadWeights(output + "weights-epoch20.nnue");
@@ -116,15 +172,6 @@ int main() {
 ////    network.loadWeights(output + "weights-epoch420.nnue");
 ////    test_fen<Koivisto>(network, "8/8/6R1/5k1P/6p1/4K3/8/8 b - - 1 53");
 ////
-////    DenseMatrix target{1,1};
-////    target(0,0) = 0.3;
-////    SArray<bool> target_mask{1};
-////    target_mask.mallocCpu();
-////    target_mask.mallocGpu();
-////    target_mask(0) = true;
-////    target_mask.gpuUpload();
-////    target.gpuUpload();
-////
 ////    finite_difference(network, target, target_mask);
 //
 ////    network.loadWeights(output + "weights-epoch120.nnue");
@@ -143,14 +190,14 @@ int main() {
 ////    test_fen<Koivisto>(network, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 //
 //
-//    BatchLoader batch_loader{files, 16384};
-//    batch_loader.start();
-//    computeScalars<Koivisto>(batch_loader, network, 128);
+    BatchLoader batch_loader{files, 16384};
+    batch_loader.start();
+    computeScalars<Clover>(batch_loader, network, 128);
 //
-//    auto f = openFile(output + "420.net");
-//    writeLayer<int16_t, int16_t>(f, network, 0, 32, 32);
-//    writeLayer<int16_t, int32_t>(f, network, 4, 128, 128 * 32);
-//    closeFile(f);
+    //auto f = openFile(output + "Clover.net");
+    //writeLayer<int16_t, int16_t>(f, network, 0, 32, 32);
+    //writeLayer<int16_t, int32_t>(f, network, 4, 256, 256);
+    //closeFile(f);
 
     close();
 }

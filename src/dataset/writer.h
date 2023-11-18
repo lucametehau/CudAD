@@ -38,6 +38,8 @@ inline void write(const std::string& file, const DataSet& data_set, uint64_t cou
     // write the data count
     auto data_to_write = std::min(count, data_set.positions.size());
 
+    printf("Size %d\n", data_set.positions.size());
+
     // copy the header and replace the data count
     Header header         = data_set.header;
     header.position_count = data_to_write;

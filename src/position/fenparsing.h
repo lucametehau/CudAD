@@ -175,7 +175,9 @@ inline Position parseFen(const std::string& fen) {
     auto left_bracket_pos  = fen.find_first_of('[', character_index);
     auto right_bracket_pos = fen.find_first_of(']', character_index);
 
-    if (left_bracket_pos == std::string::npos || right_bracket_pos == std::string::npos) {
+    if (left_bracket_pos == std::string::npos || right_bracket_pos == std::string::npos || right_bracket_pos >= fen.size() - 2) {
+        position.m_result.wdl = -69;
+        printf("SOMEBODY SCREAM\n");
         return position;
     }
 

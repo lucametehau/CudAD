@@ -183,7 +183,7 @@ inline void mix_and_shuffle_2(std::vector<std::string>& files,
     srand(time(NULL));
 
     // going through each file and writing the output files
-    int count = 0;
+    int64_t count = 0;
     for (std::string s : files) {
         DataSet ds = read<BINARY>(s);
         for (Position& p : ds.positions) {
@@ -193,12 +193,13 @@ inline void mix_and_shuffle_2(std::vector<std::string>& files,
             fwrite(&p, sizeof(Position), 1, outfiles[idx]);
             sizes[idx]++;
             count++;
+            // printing
+            if (count % 1000000 == 0) {
+                std::cout << count << std::endl;
+            }
         }
 
-        // printing
-        if (count % 1000000 == 0) {
-            std::cout << count << std::endl;
-        }
+        
     }
 
     for (int i = 0; i < num_files; i++) {

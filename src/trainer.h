@@ -72,14 +72,20 @@ class Trainer {
         training_data.start();
 
         DataSet validation_data {};
+        std::cout << "Validation data iterating\n";
         for (size_t i = 0; i < validation_files.size(); i++){
 
-            DataSet ds = read<BINARY>(validation_files.at(i), 3e6);
+            DataSet ds = read<BINARY>(validation_files.at(i));
             validation_data.addData(ds);
         }
 
         CSVWriter log {output + "loss.csv"};
         log.write({"epoch", "training_loss", "validation_loss"});
+
+        // dont forget to comment after
+        //printf("hmmmmmm\n");
+        //network->loadWeights("C:\\Users\\Luca\\source\\repos\\CudAD\\runs\\run15\\weights-5buckets-epoch310.nnue");
+        //printf("hmmmmmm2\n");
 
         Timer t {};
         for (int epoch = 1; epoch <= Epochs; epoch++) {
@@ -105,9 +111,9 @@ class Trainer {
                        std::to_string(epoch_loss / BatchesPerEpoch),
                        std::to_string(validation_loss)});
 
-            if (epoch % 10 == 0) {
+            if (epoch % 5 == 0) {
 //                quantitize_shallow(output + "nn-epoch" + std::to_string(epoch) + ".nnue", *network);
-                network->saveWeights(output + "weights-epoch" + std::to_string(epoch) + ".nnue");
+                network->saveWeights(output + "weights-5buckets-epoch" + std::to_string(epoch) + ".nnue");
             }
 
             if (epoch % optim->schedule.step == 0)
@@ -130,6 +136,7 @@ class Trainer {
             target.gpuUpload();
             target_mask.gpuUpload();
             loss_f->loss.gpuDownload();
+            loss_f->loss.get(0) *= Arch::Outputs;
 
             // measure time and print output
             timer->tock();
@@ -188,7 +195,7 @@ class Trainer {
 
             // reset loss to avoid loss of accuracy
             loss_f->loss.gpuDownload();
-            total_loss_sum += loss_f->loss.get(0);
+            total_loss_sum += loss_f->loss.get(0) * Arch::Outputs;
             loss_f->loss.get(0) = 0;
             loss_f->loss.gpuUpload();
         }

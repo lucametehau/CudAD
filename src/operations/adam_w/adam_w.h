@@ -62,19 +62,19 @@ inline void adam_w(SArray<float>& values,
                    int warmup) {
     constexpr int block_size = 1024;
 
-    ASSERT(values.size == gradients.size)
-    ASSERT(values.size == first_moment.size)
-    ASSERT(values.size == second_moment.size)
+    ASSERT(values.size() == gradients.size())
+    ASSERT(values.size() == first_moment.size())
+    ASSERT(values.size() == second_moment.size())
 
     if(mode == DEVICE) {
         dim3 block(block_size);
-        dim3 grid (std::ceil((float)values.size / block_size));
+        dim3 grid (std::ceil((float)values.size() / block_size));
         adam_w_kernel<<<grid, block>>>(
             values          .gpuAddress(),
             gradients       .gpuAddress(),
             first_moment    .gpuAddress(),
             second_moment   .gpuAddress(),
-            values.size,
+            values.size(),
             step, lr, beta1, beta2, eps, warmup);
     } else {
         adam_w_host(
@@ -82,7 +82,7 @@ inline void adam_w(SArray<float>& values,
             gradients       .cpuAddress(),
             first_moment    .cpuAddress(),
             second_moment   .cpuAddress(),
-            values.size,
+            values.size(),
             step, lr, beta1, beta2, eps, warmup);
     }
 }

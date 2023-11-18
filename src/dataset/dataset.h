@@ -31,6 +31,11 @@ struct DataSet {
     Header                header {};
     std::vector<Position> positions {};
 
+    void clear() {
+        positions.clear();
+        header = {};
+    }
+
     void                  addData(DataSet& other) {
         positions.insert(std::end(positions), std::begin(other.positions), std::end(other.positions));
         header.position_count += other.header.position_count;
